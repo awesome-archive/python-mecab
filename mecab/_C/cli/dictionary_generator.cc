@@ -13,6 +13,7 @@
 #include "mecab/feature_index.h"
 #include "mecab/mmap.h"
 #include "mecab/param.h"
+#include "mecab/scoped_ptr.h"
 #include "mecab/utils.h"
 
 #include "cli.h"
@@ -22,7 +23,7 @@ namespace MeCab {
 void copy(const char* src, const char* dst) {
   std::cout << "copying " << src << " to " << dst << std::endl;
   Mmap<char> mmap;
-  CHECK_DIE(mmap.open(src)) << mmap.what();
+  CHECK_DIE(mmap.open(src));
   std::ofstream ofs(dst, std::ios::binary | std::ios::out);
   CHECK_DIE(ofs) << "permission denied: " << dst;
   ofs.write(reinterpret_cast<char*>(mmap.begin()), mmap.size());
@@ -160,22 +161,26 @@ class DictionaryGenerator {
 
  public:
   static int run(int argc, char** argv) {
-    static const MeCab::Option long_options[] = {{"dicdir", 'd', ".", "DIR", "set DIR as dicdir(default \".\" )"},
-                                                 {"outdir", 'o', ".", "DIR", "set DIR as output dir"},
-                                                 {"model", 'm', 0, "FILE", "use FILE as model file"},
-                                                 {"version", 'v', 0, 0, "show the version and exit"},
-                                                 {"help", 'h', 0, 0, "show this help and exit."},
-                                                 {0, 0, 0, 0}};
+    static const std::vector<MeCab::Option> long_options{
+        {"dicdir", 'd', ".", "DIR", "set DIR as dicdir(default \".\" )"},
+        {"outdir", 'o', ".", "DIR", "set DIR as output dir"},
+        {"model", 'm', "", "FILE", "use FILE as model file"}};
 
     Param param;
 
-    if (!param.open(argc, argv, long_options)) {
-      std::cout << param.what() << "\n\n" << COPYRIGHT << "\ntry '--help' for more information." << std::endl;
+    if (!param.parse(argc, argv, long_options)) {
+      std::cout << "\n\n" << COPYRIGHT << "\ntry '--help' for more information." << std::endl;
       return -1;
     }
 
-    if (!param.help_version())
+    if (param.get<bool>("help")) {
+      std::cout << param.getHelpMessage() << std::endl;
       return 0;
+    }
+    if (param.get<bool>("version")) {
+      std::cout << param.getVersionMessage() << std::endl;
+      return 0;
+    }
 
     ContextID cid;
     DecoderFeatureIndex fi;
@@ -188,7 +193,7 @@ class DictionaryGenerator {
 #define DCONF(file) create_filename(dicdir, std::string(file)).c_str()
 #define OCONF(file) create_filename(outdir, std::string(file)).c_str()
 
-    CHECK_DIE(param.load(DCONF(DICRC))) << "no such file or directory: " << DCONF(DICRC);
+    CHECK_DIE(param.parseFile(DCONF(DICRC))) << "no such file or directory: " << DCONF(DICRC);
 
     std::string charset;
     {
@@ -199,7 +204,7 @@ class DictionaryGenerator {
     }
 
     CharProperty property;
-    CHECK_DIE(property.open(param));
+    CHECK_DIE(property.open(param.get<std::string>("dicdir")));
     property.set_charset(charset.c_str());
 
     const std::string bos = param.get<std::string>("bos-feature");

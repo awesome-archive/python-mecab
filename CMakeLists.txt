@@ -10,26 +10,13 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Debug)
 endif()
 
-include_directories(./Includes)
+include_directories(./include)
 set(SOURCE_CODE
-      Sources/char_property.cc
-      Sources/connector.cc
-      Sources/context_id.cc
-      Sources/dictionary.cc
-      Sources/dictionary_rewriter.cc
-      Sources/feature_index.cc
-      Sources/iconv_utils.cc
-      Sources/lbfgs.cc
-      Sources/learner_tagger.cc
-      Sources/nbest_generator.cc
-      Sources/param.cc
-      Sources/string_buffer.cc
-      Sources/tagger.cc
-      Sources/tokenizer.cc
-      Sources/utils.cc
-      Sources/viterbi.cc
-      Sources/writer.cc)
+      src/tagger.cc)
 set(TEST_CODE
+      tests/cc/test_iconv.cc
+      tests/cc/test_mmap.cc
+      tests/cc/test_param.cc
       tests/cc/test_utils.cc)
 
 find_package(Iconv REQUIRED)
